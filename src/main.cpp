@@ -1,24 +1,26 @@
 /* =======================
-   STM32F103C8T6 (Blue Pill)
-   L298N + 6x TCRT5000 + HW-504 Joystick
-   Unified testable firmware with feature flags & runtime mode switch.
-   Framework: Arduino core for STM32 (STM32duino)
-   ======================= */
+  Ohm's revenge line follower robot
+  PASADENA CITY COLLEGE
+
+  STM32F103C8T6 (Blue Pill)
+  Robot: 2x DC motors with L298N + 6x TCRT5000 + HW-504 Joystick
+  Framework: Arduino core for STM32 (STM32duino)
+  ======================= */
 
 #include <Arduino.h>
 #include <cstdint>
 
-// ---------------- Feature Flags (compile-time) ----------------
 // Turn subsystems on/off at compile time (saves flash if needed).
 #define FEAT_LINE_FOLLOWER   1
 #define FEAT_JOYSTICK        1
 #define FEAT_FAKE_LINE_TEST  1
 #define FEAT_MOTOR_TEST      1
-#define FEAT_SERIAL_SWITCH   1   // enable runtime switch via serial (l/j/t/m, ?)
 
-// ---------------- Default Boot Mode ----------------
-enum Mode { MODE_LINE=0, MODE_JOYSTICK=1, MODE_TEST=2, MODE_MOTOR=3 };
-Mode currentMode = MODE_JOYSTICK;   // change default here
+#define FEAT_SERIAL_SWITCH   1   // enable runtime switch via serial (l/j/t/m, ?)
+#define FEAT_LED_TEST        1   // enable LED flash test mode
+
+enum Mode { MODE_LINE=0, MODE_JOYSTICK=1, MODE_TEST=2, MODE_MOTOR=3, MODE_LED=4 };
+Mode currentMode = MODE_LED;   // change default here
 
 // ---------------- Pins ----------------
 // L298N
@@ -213,6 +215,19 @@ void loop_motorTest(){
 }
 #endif
 
+#if FEAT_LED_TEST
+void loop_ledTest(){
+  static bool ledState = false;
+  static unsigned long lastToggle = 0;
+  unsigned long now = millis();
+  if (now - lastToggle >= 250) {
+    ledState = !ledState;
+    digitalWrite(LED_BUILTIN, ledState ? HIGH : LOW);
+    lastToggle = now;
+  }
+}
+#endif
+
 // ---------------- Setup ----------------
 void setup(){
   // Motor pins
@@ -226,21 +241,29 @@ void setup(){
 
   // Joystick
   pinMode(JOY_SW, INPUT_PULLUP);
+  // LED test mode
+#if FEAT_LED_TEST
+  pinMode(LED_BUILTIN, OUTPUT);
+#endif
 
 #if FEAT_SERIAL_SWITCH
   Serial.begin(115200);
   delay(50);
   Serial.println("\n== Robot Ready ==");
-  Serial.println("Modes: [l] line  [j] joystick  [t] fake-line  [m] motor-test  [?] help");
+  Serial.println("Modes: [l] line  [j] joystick  [t] fake-line  [m] motor-test  [e] led-flash  [?] help");
   Serial.print("Boot mode: ");
   Serial.println(currentMode==MODE_LINE?"LINE":
                  currentMode==MODE_JOYSTICK?"JOYSTICK":
-                 currentMode==MODE_TEST?"FAKE-LINE":"MOTOR-TEST");
+                 currentMode==MODE_TEST?"FAKE-LINE":
+                 currentMode==MODE_MOTOR?"MOTOR-TEST":
+                 currentMode==MODE_LED?"LED-TEST":"UNKNOWN");
   Serial.println("Fake-line keys: a/d=-/+  s=0  1..5 presets");
 #endif
 }
 
-// ---------------- Serial Control ----------------
+/* ---------------- Serial Control ----------------
+Requires the USB to Serial USB to TTL CH340 Module 
+*/
 #if FEAT_SERIAL_SWITCH
 void handleSerial(){
   while(Serial.available()){
@@ -249,8 +272,9 @@ void handleSerial(){
     else if(c=='j'){ currentMode = MODE_JOYSTICK; Serial.println("-> MODE_JOYSTICK"); }
     else if(c=='t'){ currentMode = MODE_TEST;     Serial.println("-> MODE_FAKE_LINE"); }
     else if(c=='m'){ currentMode = MODE_MOTOR;    Serial.println("-> MODE_MOTOR_TEST"); }
+    else if(c=='e'){ currentMode = MODE_LED;      Serial.println("-> MODE_LED_TEST"); }
     else if(c=='?'){
-      Serial.println("[l] line, [j] joystick, [t] fake-line, [m] motor-test");
+      Serial.println("[l] line, [j] joystick, [t] fake-line, [m] motor-test, [e] led-flash");
       Serial.println("Fake-line: 'a'/'d' to step -/+, 's' zero, '1'..'5' presets ±{1,3,5}");
     }
 #if FEAT_FAKE_LINE_TEST
@@ -267,7 +291,6 @@ void handleSerial(){
 }
 #endif
 
-// ---------------- Main loop ----------------
 void loop(){
 #if FEAT_SERIAL_SWITCH
   handleSerial();
@@ -285,6 +308,9 @@ void loop(){
 #endif
 #if FEAT_MOTOR_TEST
     case MODE_MOTOR:    loop_motorTest();    break;
+#endif
+#if FEAT_LED_TEST
+    case MODE_LED:      loop_ledTest();      break;
 #endif
     default: motorsStop(); delay(10); break;
   }
