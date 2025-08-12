@@ -10,7 +10,6 @@
 #include <Arduino.h>
 #include <cstdint>
 
-// Turn subsystems on/off at compile time (saves flash if needed).
 #define FEAT_LINE_FOLLOWER   1
 #define FEAT_JOYSTICK        1
 #define FEAT_FAKE_LINE_TEST  1
@@ -18,8 +17,10 @@
 
 #define FEAT_SERIAL_SWITCH   1   // enable runtime switch via serial (l/j/t/m, ?)
 #define FEAT_LED_TEST        1   // enable LED flash test mode
+#define LED_PIN PC13
 
 enum Mode { MODE_LINE=0, MODE_JOYSTICK=1, MODE_TEST=2, MODE_MOTOR=3, MODE_LED=4 };
+
 Mode currentMode = MODE_LED;   // change default here
 
 // ---------------- Pins ----------------
@@ -33,9 +34,11 @@ const uint8_t IN4 = PB11;   // Right dir -
 
 // 6x TCRT5000 (digital outputs)
 const uint8_t SENSORS[6] = {PA0, PA1, PA2, PA3, PA4, PA5};
+
 // weights centered around 0 (adjust for your spacing)
 const int8_t  WEIGHTS[6]  = {-5, -3, -1, 1, 3, 5};
-// If your TCRT boards output HIGH on black, flip this:
+
+// TODO: If your TCRT boards output HIGH on black, flip this:
 bool SENSOR_ACTIVE_LOW = true;  // true: LOW=on-line; false: HIGH=on-line
 
 // Joystick (power at 3.3V)
@@ -222,7 +225,7 @@ void loop_ledTest(){
   unsigned long now = millis();
   if (now - lastToggle >= 250) {
     ledState = !ledState;
-    digitalWrite(LED_BUILTIN, ledState ? HIGH : LOW);
+    digitalWrite(LED_PIN, ledState ? LOW : HIGH);  // ON = LOW, OFF = HIGH
     lastToggle = now;
   }
 }
@@ -243,7 +246,7 @@ void setup(){
   pinMode(JOY_SW, INPUT_PULLUP);
   // LED test mode
 #if FEAT_LED_TEST
-  pinMode(LED_BUILTIN, OUTPUT);
+  pinMode(LED_PIN, OUTPUT);
 #endif
 
 #if FEAT_SERIAL_SWITCH
