@@ -1,7 +1,7 @@
 # BMC-OHMS-REVENGE-ARDUINO
 
 ## Project Overview
-This project is designed for the STM32F103C8T6 (Blue Pill) board using PlatformIO and the Arduino framework. It features multiple test modes for motors, line following, and joystick control.
+This project is designed for the STM32F103C8T6 (Blue Pill) board using PlatformIO and the Arduino framework. It features multiple test modes for motors and line following.
 
 ## Requirements
 - PlatformIO (https://platformio.org/)
@@ -30,7 +30,6 @@ To interact with the board via serial:
 ## Test Modes
 - **Motor Test**: Verifies motor driver functionality.
 - **Line Follower**: Uses sensors to follow a line.
-- **Joystick Control**: Manual control via joystick.
 
 Switch between modes using the serial interface or hardware controls as defined in your code.
 
