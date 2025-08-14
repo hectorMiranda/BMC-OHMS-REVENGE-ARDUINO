@@ -31,5 +31,3 @@ To interact with the board via serial:
 - **Motor Test**: Verifies motor driver functionality.
 - **Line Follower**: Uses sensors to follow a line.
 
-Switch between modes using the serial interface or hardware controls as defined in your code.
-
