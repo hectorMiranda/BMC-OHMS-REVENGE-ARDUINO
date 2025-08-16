@@ -3,7 +3,7 @@
   PASADENA CITY COLLEGE
 
   STM32F103C8T6 (Blue Pill)
-  Robot: 2x DC motors with L298N + 6x TCRT5000 + HW-504 Joystick
+  Robot: 2x DC motors with L298N + 6x TCRT5000 
   Framework: Arduino core for STM32 (STM32duino)
   ======================= */
 
@@ -24,20 +24,20 @@ Mode currentMode = MODE_MOTOR;   // change default here
 
 // ---------------- Pins ----------------
 // L298N
-const uint8_t ENA = PA6;    // Left PWM
-const uint8_t IN1 = PA5;    // Left dir +
-const uint8_t IN2 = PA4;    // Left dir -
-const uint8_t ENB = PA3;    // Right PWM
-const uint8_t IN3 = PA2;   // Right dir +
-const uint8_t IN4 = PA1;   // Right dir -
+const uint8_t ENA = PA5;    // Left PWM
+const uint8_t IN1 = PA4;    // Left dir +
+const uint8_t IN2 = PA3;    // Left dir -
+const uint8_t ENB = PA2;    // Right PWM
+const uint8_t IN3 = PA1;   // Right dir +
+const uint8_t IN4 = PA0;   // Right dir -
 
 // 6x TCRT5000 (digital outputs)
-const uint8_t SENSORS[6] = {PA0, PA1, PA2, PA3, PA4, PA5};
+const uint8_t SENSORS[6] = {PB0, PB1, PB10, PB11, PB12, PB13};
 
 // weights centered around 0 (adjust for your spacing)
 const int8_t  WEIGHTS[6]  = {-5, -3, -1, 1, 3, 5};
 
-// TODO: If your TCRT boards output HIGH on black, flip this:
+// TODO: If the TCRT boards output HIGH on black, we should flip this:
 bool SENSOR_ACTIVE_LOW = true;  // true: LOW=on-line; false: HIGH=on-line
 
 
@@ -188,7 +188,6 @@ void loop_ledTest(){
 }
 #endif
 
-// ---------------- Setup ----------------
 void setup(){
   // Motor pins
   pinMode(IN1,OUTPUT); pinMode(IN2,OUTPUT);
