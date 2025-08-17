@@ -9,6 +9,7 @@
 
   Remarks:
   L298N is only used for the prototype version, not for actual bright manufacturing challenge
+  Use runtime switch via serial (l/j/t/m, ?)
 
   TODO:
     - Test and calibrate sensors
@@ -116,10 +117,14 @@ int readLineError(bool &seen)
 {
   long sum = 0, wsum = 0;
   seen = false;
+
+  Serial.print("SENSORS: [ ");
   for (uint8_t i = 0; i < 6; i++)
   {
     int raw = digitalRead(SENSORS[i]);
     int onLine = SENSOR_ACTIVE_LOW ? (raw == LOW) : (raw == HIGH);
+    Serial.print(onLine ? "1 " : "0 "); // Print raw ON/OFF state
+
     if (onLine)
     {
       seen = true;
@@ -127,13 +132,22 @@ int readLineError(bool &seen)
       wsum += WEIGHTS[i];
     }
   }
+  Serial.print("] ");
+
   if (!seen || sum == 0)
   {
-    // TODO: test lost line: nudge toward last side
-    return (pidLastErr >= 0) ? 6 : -6;
+    int fallback = (pidLastErr >= 0) ? 6 : -6;
+    Serial.print("-> LOST LINE, returning ");
+    Serial.println(fallback);
+    return fallback;
   }
-  return (int)(wsum / sum);
+
+  int err = (int)(wsum / sum);
+  Serial.print("-> ERROR = ");
+  Serial.println(err);
+  return err;
 }
+
 
 // ---------------- Modes ----------------
 #if FEAT_LINE_FOLLOWER
