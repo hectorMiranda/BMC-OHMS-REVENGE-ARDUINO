@@ -37,7 +37,7 @@ enum Mode
   MODE_LED = 3
 };
 
-Mode currentMode = MODE_MOTOR; // <--- START HERE
+Mode currentMode = MODE_LINE; // <--- START HERE
 
 const uint8_t ENA = PA5;                                       // Left PWM
 const uint8_t IN1 = PA4;                                       // Left dir +
