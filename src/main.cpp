@@ -9,7 +9,13 @@
 
   Remarks:
   L298N is only used for the prototype version, not for actual bright manufacturing challenge
-  Use runtime switch via serial (l/j/t/m, ?)
+  Use runtime switch via serial:
+
+  [l] line, [t] fake-line, [m] motor-test, [e] led-flash
+  
+  Fake-line: 'a'/'d' to step -/+, 's' zero, '1'..'5' presets ±{1,3,5}
+
+
 
   TODO:
     - Test and calibrate sensors
@@ -25,7 +31,7 @@
 #define FEAT_FAKE_LINE_TEST 1
 #define FEAT_MOTOR_TEST 1
 
-#define FEAT_SERIAL_SWITCH 1 // TODO: test the enable runtime switch via serial (l/j/t/m, ?)
+#define FEAT_SERIAL_SWITCH 1 // TODO: test the enable runtime switch via serial (l/t/m, ?)
 #define FEAT_LED_TEST 1
 #define LED_PIN PC13
 
@@ -37,7 +43,7 @@ enum Mode
   MODE_LED = 3
 };
 
-Mode currentMode = MODE_LINE; // <--- START HERE
+Mode currentMode = MODE_LED; // <--- START HERE
 
 const uint8_t ENA = PA5;                                       // Left PWM
 const uint8_t IN1 = PA4;                                       // Left dir +
