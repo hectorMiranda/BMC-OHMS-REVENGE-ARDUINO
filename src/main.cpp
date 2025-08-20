@@ -48,9 +48,9 @@ Mode currentMode = MODE_LED; // <--- START HERE
 const uint8_t ENA = PA5;                                       // Left PWM
 const uint8_t IN1 = PA4;                                       // Left dir +
 const uint8_t IN2 = PA3;                                       // Left dir -
-const uint8_t ENB = PA2;                                       // Right PWM
-const uint8_t IN3 = PA1;                                       // Right dir +
-const uint8_t IN4 = PA0;                                       // Right dir -
+const uint8_t ENB = PA0;                                       // Right PWM
+const uint8_t IN3 = PA2;                                       // Right dir +
+const uint8_t IN4 = PA1;                                       // Right dir -
 const uint8_t SENSORS[6] = {PB0, PB1, PB10, PB11, PB12, PB13}; // 6x TCRT5000 (digital outputs)
 const int8_t WEIGHTS[6] = {-5, -3, -1, 1, 3, 5};               // weights centered around 0 (TODO: depending on spacing we may need to adjust)
 bool SENSOR_ACTIVE_LOW = true;                                 // true: LOW=on-line; false: HIGH=on-line, TODO: If the TCRT boards output HIGH on black, we should flip this:
