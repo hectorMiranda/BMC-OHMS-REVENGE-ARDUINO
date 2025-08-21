@@ -11,7 +11,7 @@
   L298N is only used for the prototype version, not for actual bright manufacturing challenge
   Use runtime switch via serial:
 
-  [l] line, [t] fake-line, [m] motor-test, [e] led-flash
+  [l] line, [t] fake-line, [m] motor-test, [e] led-flash, [s] sensor-test"
   
   Fake-line: 'a'/'d' to step -/+, 's' zero, '1'..'5' presets ±{1,3,5}
 
@@ -35,15 +35,21 @@
 #define FEAT_LED_TEST 1
 #define LED_PIN PC13
 
+
+// Modes for runtime switching
 enum Mode
 {
-  MODE_LINE = 0,
-  MODE_TEST = 1,
-  MODE_MOTOR = 2,
-  MODE_LED = 3
+  MODE_LINE = 0,      // Line following
+  MODE_TEST = 1,      // Fake line test (PID debug)
+  MODE_MOTOR = 2,     // Motor test
+  MODE_LED = 3,       // LED blink test
+  MODE_SENSOR_TEST = 4 // Single TCRT5000 sensor test
 };
 
-Mode currentMode = MODE_LED; // <--- START HERE
+Mode currentMode = MODE_LED; // <--- START HERE (default)
+
+// For sensor test mode
+uint8_t sensorTestIndex = 0; // 0..5
 
 const uint8_t ENA = PA5;                                       // Left PWM
 const uint8_t IN1 = PA4;                                       // Left dir +
@@ -51,7 +57,7 @@ const uint8_t IN2 = PA3;                                       // Left dir -
 const uint8_t ENB = PA0;                                       // Right PWM
 const uint8_t IN3 = PA2;                                       // Right dir +
 const uint8_t IN4 = PA1;                                       // Right dir -
-const uint8_t SENSORS[6] = {PB0, PB1, PB10, PB11, PB12, PB13}; // 6x TCRT5000 (digital outputs)
+const uint8_t SENSORS[6] = {PB0, PB1, PB10, PB3, PB12, PB13}; // 6x TCRT5000 (digital outputs)
 const int8_t WEIGHTS[6] = {-5, -3, -1, 1, 3, 5};               // weights centered around 0 (TODO: depending on spacing we may need to adjust)
 bool SENSOR_ACTIVE_LOW = true;                                 // true: LOW=on-line; false: HIGH=on-line, TODO: If the TCRT boards output HIGH on black, we should flip this:
 
@@ -155,7 +161,22 @@ int readLineError(bool &seen)
 }
 
 
+#if FEAT_LINE_FOLLOWER
 // ---------------- Modes ----------------
+#endif
+
+// --- Single TCRT5000 Sensor Test Mode ---
+// Allows user to select a sensor (0..5) and view its state in real time
+void loop_sensorTest()
+{
+  Serial.print("Sensor ");
+  Serial.print(sensorTestIndex);
+  Serial.print(": ");
+  int raw = digitalRead(SENSORS[sensorTestIndex]);
+  int onLine = SENSOR_ACTIVE_LOW ? (raw == LOW) : (raw == HIGH);
+  Serial.println(onLine ? "ON-LINE (active)" : "OFF-LINE (inactive)");
+  delay(300);
+}
 #if FEAT_LINE_FOLLOWER
 void loop_lineFollower()
 {
@@ -297,13 +318,18 @@ void setup()
   Serial.begin(115200);
   delay(50);
   Serial.println("\n== Ohm's Revenge Robot Ready ==");
-  Serial.println("Modes: [l] line  [t] fake-line  [m] motor-test  [e] led-flash  [?] help");
+  Serial.println("Modes: [l] line  [t] fake-line  [m] motor-test  [e] led-flash  [s] sensor-test  [?] help");
   Serial.print("Boot mode: ");
-  Serial.println(currentMode == MODE_LINE ? "LINE" : currentMode == MODE_TEST ? "FAKE-LINE"
-                                                 : currentMode == MODE_MOTOR  ? "MOTOR-TEST"
-                                                 : currentMode == MODE_LED    ? "LED-TEST"
-                                                                              : "UNKNOWN");
+  switch (currentMode) {
+    case MODE_LINE: Serial.println("LINE"); break;
+    case MODE_TEST: Serial.println("FAKE-LINE"); break;
+    case MODE_MOTOR: Serial.println("MOTOR-TEST"); break;
+    case MODE_LED: Serial.println("LED-TEST"); break;
+    case MODE_SENSOR_TEST: Serial.println("SENSOR-TEST"); break;
+    default: Serial.println("UNKNOWN"); break;
+  }
   Serial.println("Fake-line keys: a/d=-/+  s=0  1..5 presets");
+  Serial.println("Sensor-test keys: 0..5 to select sensor");
 #endif
 }
 
@@ -316,58 +342,53 @@ void handleSerial()
   while (Serial.available())
   {
     char c = Serial.read();
-    if (c == 'l')
-    {
+    if (c == 'l') {
       currentMode = MODE_LINE;
       Serial.println("-> MODE_LINE");
-    }
-    else if (c == 't')
-    {
+    } else if (c == 't') {
       currentMode = MODE_TEST;
       Serial.println("-> MODE_FAKE_LINE");
-    }
-    else if (c == 'm')
-    {
+    } else if (c == 'm') {
       currentMode = MODE_MOTOR;
       Serial.println("-> MODE_MOTOR_TEST");
-    }
-    else if (c == 'e')
-    {
+    } else if (c == 'e') {
       currentMode = MODE_LED;
       Serial.println("-> MODE_LED_TEST");
-    }
-    else if (c == '?')
-    {
-      Serial.println("[l] line, [t] fake-line, [m] motor-test, [e] led-flash");
+    } else if (c == 's') {
+      currentMode = MODE_SENSOR_TEST;
+      Serial.println("-> MODE_SENSOR_TEST");
+    } else if (c == '?') {
+      Serial.println("[l] line, [t] fake-line, [m] motor-test, [e] led-flash, [s] sensor-test");
       Serial.println("Fake-line: 'a'/'d' to step -/+, 's' zero, '1'..'5' presets ±{1,3,5}");
+      Serial.println("Sensor-test: 0..5 to select sensor");
     }
+    // Fake-line test controls
 #if FEAT_FAKE_LINE_TEST
-    else if (c == 'a')
-    {
+    else if (currentMode == MODE_TEST && c == 'a') {
       TEST_err_value--;
       Serial.print("err=");
       Serial.println(TEST_err_value);
-    }
-    else if (c == 'd')
-    {
+    } else if (currentMode == MODE_TEST && c == 'd') {
       TEST_err_value++;
       Serial.print("err=");
       Serial.println(TEST_err_value);
-    }
-    else if (c == 's')
-    {
+    } else if (currentMode == MODE_TEST && c == 's') {
       TEST_err_value = 0;
       Serial.print("err=");
       Serial.println(TEST_err_value);
-    }
-    else if (c >= '1' && c <= '5')
-    {
+    } else if (currentMode == MODE_TEST && c >= '1' && c <= '5') {
       int v = (c - '0');
       TEST_err_value = (pidLastErr >= 0) ? v : -v; // bias to last sign
       Serial.print("err=");
       Serial.println(TEST_err_value);
     }
 #endif
+    // Sensor-test controls: select sensor 0..5
+    else if (currentMode == MODE_SENSOR_TEST && c >= '0' && c <= '5') {
+      sensorTestIndex = c - '0';
+      Serial.print("Selected sensor ");
+      Serial.println(sensorTestIndex);
+    }
   }
 }
 #endif
@@ -380,13 +401,6 @@ void loop()
 
   switch (currentMode)
   {
-#if FEAT_LINE_FOLLOWER
-  case MODE_LINE:
-    loop_lineFollower();
-    break;
-#endif
-    switch (currentMode)
-    {
 #if FEAT_LINE_FOLLOWER
     case MODE_LINE:
       loop_lineFollower();
@@ -407,29 +421,12 @@ void loop()
       loop_ledTest();
       break;
 #endif
+    case MODE_SENSOR_TEST:
+      loop_sensorTest();
+      break;
     default:
       motorsStop();
       delay(10);
       break;
-    }
-#if FEAT_FAKE_LINE_TEST
-  case MODE_TEST:
-    loop_fakeLine();
-    break;
-#endif
-#if FEAT_MOTOR_TEST
-  case MODE_MOTOR:
-    loop_motorTest();
-    break;
-#endif
-#if FEAT_LED_TEST
-  case MODE_LED:
-    loop_ledTest();
-    break;
-#endif
-  default:
-    motorsStop();
-    delay(10);
-    break;
   }
 }
