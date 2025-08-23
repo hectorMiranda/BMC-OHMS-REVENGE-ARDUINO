@@ -59,7 +59,7 @@ const uint8_t IN3 = PA2;                                       // Right dir +
 const uint8_t IN4 = PA1;                                       // Right dir -
 const uint8_t SENSORS[6] = {PB0, PB1, PB4, PB3, PB12, PB13}; // 6x TCRT5000 (digital outputs)
 const int8_t WEIGHTS[6] = {-5, -3, -1, 1, 3, 5};               // weights centered around 0 (TODO: depending on spacing we may need to adjust)
-bool SENSOR_ACTIVE_LOW = false;                                 // true: LOW=on-line; false: HIGH=on-line, TODO: If the TCRT boards output HIGH on black, we should flip this:
+bool SENSOR_ACTIVE_LOW = true;                                 // true: LOW=on-line; false: HIGH=on-line, TODO: If the TCRT boards output HIGH on black, we should flip this:
 
 // ---------------- Motion / PWM -----------------------------------------
 const int PWM_MAX = 1000;        // STM32 TIM1 default
@@ -169,12 +169,25 @@ int readLineError(bool &seen)
 // Allows user to select a sensor (0..5) and view its state in real time
 void loop_sensorTest()
 {
-  Serial.print("Sensor ");
-  Serial.print(sensorTestIndex);
-  Serial.print(": ");
-  int raw = digitalRead(SENSORS[sensorTestIndex]);
-  int onLine = SENSOR_ACTIVE_LOW ? (raw == LOW) : (raw == HIGH);
-  Serial.println(onLine ? "ON-LINE (active)" : "OFF-LINE (inactive)");
+  // Print table of all sensors
+  int activeCount = 0;
+  Serial.print("SENSORS: [ ");
+  for (uint8_t i = 0; i < 6; i++) {
+    int raw = digitalRead(SENSORS[i]);
+    int onLine = SENSOR_ACTIVE_LOW ? (raw == LOW) : (raw == HIGH);
+    Serial.print(onLine ? "1 " : "0 ");
+    if (onLine) activeCount++;
+  }
+  Serial.print("]  Active: ");
+  Serial.println(activeCount);
+
+  // If 2 or more sensors are active, move forward; else stop
+  if (activeCount >= 2) {
+    motorLeft(400); // Safe forward speed
+    motorRight(400);
+  } else {
+    motorsStop();
+  }
   delay(300);
 }
 
