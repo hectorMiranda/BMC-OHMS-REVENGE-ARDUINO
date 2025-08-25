@@ -59,7 +59,7 @@ const uint8_t IN3 = PA2;                                       // Right dir +
 const uint8_t IN4 = PA1;                                       // Right dir -
 const uint8_t SENSORS[6] = {PB3, PB4, PB5, PB6, PB7, PB8}; // 6x TCRT5000 (digital outputs)
 const int8_t WEIGHTS[6] = {-5, -3, -1, 1, 3, 5};               // weights centered around 0 (TODO: depending on spacing we may need to adjust)
-bool SENSOR_ACTIVE_LOW = false;                                // true: LOW=on-line; false: HIGH=on-line, TODO: If the TCRT boards output HIGH on black, we should flip this:
+bool SENSOR_ACTIVE_LOW = true;                                // true: LOW=on-line; false: HIGH=on-line, TODO: If the TCRT boards output HIGH on black, we should flip this:
 
 // ---------------- Motion / PWM -----------------------------------------
 const int PWM_MAX = 1000;        // STM32 TIM1 default
@@ -200,6 +200,30 @@ void loop_lineFollower()
   bool seen = false;
   int err = readLineError(seen);
 
+  static uint8_t lostStep = 0;
+  static unsigned long lostTimer = 0;
+  if (!seen) {
+    // Wiggle search clockwise: right, back, left, forward
+    unsigned long now = millis();
+    if (now - lostTimer > 200) { // Change direction every 200ms
+      lostStep = (lostStep + 1) % 4;
+      lostTimer = now;
+    }
+    switch (lostStep) {
+      case 0: // Turn right
+        motorLeft(350); motorRight(-350); break;
+      case 1: // Spin back
+        motorLeft(-350); motorRight(-350); break;
+      case 2: // Turn left
+        motorLeft(-350); motorRight(350); break;
+      case 3: // Forward
+        motorLeft(350); motorRight(350); break;
+    }
+    delay(2);
+    return;
+  } else {
+    lostStep = 0; // Reset wiggle when line found
+  }
   // PID
   float P = err;
   pidIntegral += P;
