@@ -1,3 +1,5 @@
+// ---------------- Lost line search timeout ----------------
+const unsigned long LOST_LINE_TIMEOUT_MS = 3000; // Stop after 3 seconds of searching
 /* ===============================================================================================
   Ohm's revenge Line Follower Robot prototype
   PASADENA CITY COLLEGE
@@ -70,7 +72,7 @@ const bool INVERT_RIGHT = false; // set true if right motor wired reversed
 float KP = 13.0f;
 float KI = 0.0f;
 float KD = 2.5f;
-int BASE_SPEED = 600; // start slower to tune, e.g. 400..600
+int BASE_SPEED = 200; // start slower to tune, e.g. 400..600
 int MAX_SPEED = 1000;
 
 float pidIntegral = 0.0f;
@@ -202,9 +204,16 @@ void loop_lineFollower()
 
   static uint8_t lostStep = 0;
   static unsigned long lostTimer = 0;
+  static unsigned long lostStart = 0;
   if (!seen) {
-    // Wiggle search clockwise: right, back, left, forward
     unsigned long now = millis();
+    if (lostStart == 0) lostStart = now;
+    // If searching too long, stop motors
+    if (now - lostStart > LOST_LINE_TIMEOUT_MS) {
+      motorsStop();
+      return;
+    }
+    // Wiggle search clockwise: right, back, left, forward
     if (now - lostTimer > 200) { // Change direction every 200ms
       lostStep = (lostStep + 1) % 4;
       lostTimer = now;
@@ -223,6 +232,7 @@ void loop_lineFollower()
     return;
   } else {
     lostStep = 0; // Reset wiggle when line found
+    lostStart = 0; // Reset lost timer
   }
   // PID
   float P = err;
