@@ -61,7 +61,7 @@ const uint8_t IN3 = PA2;                                       // Right dir +
 const uint8_t IN4 = PA1;                                       // Right dir -
 const uint8_t SENSORS[6] = {PB3, PB4, PB5, PB6, PB7, PB8}; // 6x TCRT5000 (digital outputs)
 const int8_t WEIGHTS[6] = {-5, -3, -1, 1, 3, 5};               // weights centered around 0 (TODO: depending on spacing we may need to adjust)
-bool SENSOR_ACTIVE_LOW = true;                                // true: LOW=on-line; false: HIGH=on-line, TODO: If the TCRT boards output HIGH on black, we should flip this:
+bool SENSOR_ACTIVE_LOW = false;                                // true: LOW=on-line; false: HIGH=on-line, TODO: If the TCRT boards output HIGH on black, we should flip this:
 
 // ---------------- Motion / PWM -----------------------------------------
 const int PWM_MAX = 1000;        // STM32 TIM1 default
@@ -167,25 +167,68 @@ int readLineError(bool &seen)
 // Allows user to select a sensor (0..5) and view its state in real time
 void loop_sensorTest()
 {
-  // Print table of all sensors
+  // Verbose sensor test: use same logic as line following
+  long sum = 0, wsum = 0;
   int activeCount = 0;
   Serial.print("SENSORS: [ ");
   for (uint8_t i = 0; i < 6; i++) {
     int raw = digitalRead(SENSORS[i]);
     int onLine = SENSOR_ACTIVE_LOW ? (raw == LOW) : (raw == HIGH);
     Serial.print(onLine ? "1 " : "0 ");
-    if (onLine) activeCount++;
+    if (onLine) {
+      activeCount++;
+      sum += 1;
+      wsum += WEIGHTS[i];
+    }
   }
   Serial.print("]  Active: ");
-  Serial.println(activeCount);
+  Serial.print(activeCount);
+  Serial.print("  SUM: ");
+  Serial.print(sum);
+  Serial.print("  WSUM: ");
+  Serial.print(wsum);
 
-  // If 2 or more sensors are active, move forward; else stop
-  if (activeCount >= 2) {
-    motorLeft(400); // Safe forward speed
-    motorRight(400);
+  bool seen = (activeCount > 0);
+  int err = 0;
+  if (!seen || sum == 0) {
+    int fallback = (pidLastErr >= 0) ? 6 : -6;
+    Serial.print("  -> LOST LINE, fallback error: ");
+    Serial.print(fallback);
+    err = fallback;
   } else {
-    motorsStop();
+    err = (int)(wsum / sum);
+    Serial.print("  -> ERROR: ");
+    Serial.print(err);
   }
+
+  // Simulate PID output as in line follower
+  float P = err;
+  float D = P - pidLastErr;
+  float turn = KP * P + KI * pidIntegral + KD * D;
+  Serial.print("  PID: ");
+  Serial.print(turn, 2);
+  int left = BASE_SPEED - (int)turn;
+  int right = BASE_SPEED + (int)turn;
+  left = clampi(left, -MAX_SPEED, MAX_SPEED);
+  right = clampi(right, -MAX_SPEED, MAX_SPEED);
+  Serial.print("  LEFT: ");
+  Serial.print(left);
+  Serial.print("  RIGHT: ");
+  Serial.print(right);
+
+  // Show what the robot would do
+  if (!seen) {
+    Serial.print("  ACTION: LOST LINE (would wiggle/stop)");
+    motorsStop();
+  } else {
+    if (left > right) Serial.print("  ACTION: TURN LEFT");
+    else if (right > left) Serial.print("  ACTION: TURN RIGHT");
+    else Serial.print("  ACTION: FORWARD");
+    motorLeft(left);
+    motorRight(right);
+  }
+  Serial.println();
+  pidLastErr = P;
   delay(300);
 }
 
