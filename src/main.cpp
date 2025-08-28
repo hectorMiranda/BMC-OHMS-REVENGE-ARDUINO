@@ -163,10 +163,6 @@ int readLineError(bool &seen)
 }
 
 
-#if FEAT_LINE_FOLLOWER
-// ---------------- Modes ----------------
-#endif
-
 // --- Single TCRT5000 Sensor Test Mode ---
 // Allows user to select a sensor (0..5) and view its state in real time
 void loop_sensorTest()
