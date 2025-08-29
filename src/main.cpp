@@ -48,7 +48,7 @@ enum Mode
   MODE_SENSOR_TEST = 4 // Single TCRT5000 sensor test
 };
 
-Mode currentMode = MODE_LED; // <--- START HERE (default)
+Mode currentMode = MODE_LINE; // <--- START HERE (default)
 
 // For sensor test mode
 uint8_t sensorTestIndex = 2; // 0..5
@@ -65,7 +65,7 @@ bool SENSOR_ACTIVE_LOW = false;                                // true: LOW=on-l
 
 // ---------------- Motion / PWM -----------------------------------------
 const int PWM_MAX = 1000;        // STM32 TIM1 default
-const bool INVERT_LEFT = false;  // set true if left motor wired reversed
+const bool INVERT_LEFT = true;  // set true if left motor wired reversed
 const bool INVERT_RIGHT = false; // set true if right motor wired reversed
 
 // ---------------- PID (line follower) ----------------------------
