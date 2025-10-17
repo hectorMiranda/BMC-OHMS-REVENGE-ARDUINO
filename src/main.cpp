@@ -59,7 +59,7 @@ const uint8_t IN2 = PA3;                                       // Left dir -
 const uint8_t ENB = PA0;                                       // Right PWM
 const uint8_t IN3 = PA2;                                       // Right dir +
 const uint8_t IN4 = PA1;                                       // Right dir -
-const uint8_t SENSORS[6] = {PB3, PB4, PB5, PB6, PB7, PB8}; // 6x TCRT5000 (digital outputs)
+const uint8_t SENSORS[6] = {PA0, PA1, PA2, PA3, PA4, PA5}; // 6x TCRT5000 (digital outputs)
 const int8_t WEIGHTS[6] = {-5, -3, -1, 1, 3, 5};               // weights centered around 0 (TODO: depending on spacing we may need to adjust)
 bool SENSOR_ACTIVE_LOW = false;                                // true: LOW=on-line; false: HIGH=on-line, TODO: If the TCRT boards output HIGH on black, we should flip this:
 
@@ -72,8 +72,8 @@ const bool INVERT_RIGHT = false; // set true if right motor wired reversed
 float KP = 13.0f;
 float KI = 0.0f;
 float KD = 2.5f;
-int BASE_SPEED = 200; // start slower to tune, e.g. 400..600
-int MAX_SPEED = 1000;
+int BASE_SPEED = 50; // start slower to tune, e.g. 400..600
+int MAX_SPEED = 200; //was 1000
 
 float pidIntegral = 0.0f;
 float pidLastErr = 0.0f;
